@@ -5,7 +5,7 @@
     pip install torch==1.7.1
 
 ### 运行
-    
+
 在根目录下运行
 
     python scripts/slu_baseline.py
@@ -15,6 +15,7 @@
 + `utils/args.py`:定义了所有涉及到的可选参数，如需改动某一参数可以在运行的时候将命令修改成
         
         python scripts/slu_baseline.py --<arg> <value>
+    
     其中，`<arg>`为要修改的参数名，`<value>`为修改后的值
 + `utils/initialization.py`:初始化系统设置，包括设置随机种子和显卡/CPU
 + `utils/vocab.py`:构建编码输入输出的词表
