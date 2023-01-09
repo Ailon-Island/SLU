@@ -1,5 +1,5 @@
 #coding=utf8
-import sys, os, time, gc
+import sys, os, time, gc, glob
 from torch.optim import Adam
 
 install_path = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -10,7 +10,7 @@ from utils.initialization import *
 from utils.example import Example
 from utils.batch import from_example_list
 from utils.vocab import PAD
-from model.slu_bert_tagging import BERTTagging
+from model.slu_pretrained_tagging import PretrainedTagging
 
 # initialization params, output path, logger, random seed and torch.device
 args = init_args(sys.argv[1:])
@@ -34,8 +34,26 @@ args.pad_idx = Example.word_vocab[PAD]
 args.num_tags = Example.label_vocab.num_tags
 args.tag_pad_idx = Example.label_vocab.convert_tag_to_idx(PAD)
 
+if args.load_pretrained:
+    if args.pretrained_checkpoint_dir is None:
+        checkpoints_dir = os.path.join('pretrained_checkpoints', args.pretrained_model)
+        args.pretrained_checkpoint_dir = glob.glob(os.path.join(checkpoints_dir, '*') + os.path.sep)[-1][:-1]
 
-model = BERTTagging(args).to(device)
+    checkpoint = os.path.basename(args.pretrained_checkpoint_dir)
+    tf_path = os.path.join(args.pretrained_checkpoint_dir, f'{checkpoint}.ckpt')
+    pytorch_path = os.path.join(args.pretrained_checkpoint_dir, f'{checkpoint}.bin')
+    if not os.path.exists(pytorch_path) and not os.path.exists(tf_path + '.meta'):
+        args.load_pretrained = False
+    else:
+        if args.pretrained_framework == 'pytorch' and not os.path.exists(pytorch_path):
+            args.pretrained_framework = 'tensorflow'
+            args.pretrained_checkpoint_dir = tf_path
+        if args.pretrained_framework == 'tensorflow' and not os.path.exists(tf_path + '.meta'):
+            args.pretrained_framework = 'pytorch'
+            args.pretrained_checkpoint_dir = pytorch_path
+        args.pretrained_path = pytorch_path if args.pretrained_framework == 'pytorch' else tf_path
+
+model = PretrainedTagging(args).to(device)
 # Example.word2vec.load_embeddings(model.word_embed, Example.word_vocab, device=device)
 
 
@@ -43,9 +61,9 @@ def set_optimizer(model, args):
     params = [(n, p) for n, p in model.output_layer.named_parameters() if p.requires_grad]
 
     grouped_params = [{'params': list(set([p for n, p in params])), 'name': 'output_layer'}]
-    if args.bert_train:
-        bert_params = [(n, p) for n, p in model.model.named_parameters() if p.requires_grad]
-        grouped_params.append({'params': list(set([p for n, p in bert_params])), 'lr': args.bert_lr,'name': 'bert'})
+    if args.finetune_pretrained:
+        pretrained_params = [(n, p) for n, p in model.model.named_parameters() if p.requires_grad]
+        grouped_params.append({'params': list(set([p for n, p in pretrained_params])), 'lr': args.finetune_lr, 'name': 'pretrained'})
 
     optimizer = Adam(grouped_params, lr=args.lr)
     return optimizer

@@ -15,13 +15,13 @@ from utils.tensor import dict2device
 alphabet_tokens = ['['+chr(i)+']' for i in chain(range(97, 123), range(65, 91))]
 
 
-class BERTTagging(Module):
+class ELECTRATagging(Module):
     def __init__(self, config):
-        super(BERTTagging, self).__init__()
+        super(ELECTRATagging, self).__init__()
         self.config = config
-        self.tokenizer = AutoTokenizer.from_pretrained("bert-base-chinese",
-                                                       additional_special_tokens=['[SPACE]', '[a]', *alphabet_tokens])
-        self.model = AutoModel.from_pretrained("bert-base-chinese")
+        self.tokenizer = AutoTokenizer.from_pretrained("hfl/chinese-legal-electra-base-generator",
+                                                       additional_special_tokens=['[SPACE]', *alphabet_tokens])
+        self.model = AutoModel.from_pretrained("hfl/chinese-legal-electra-base-generator")
         self.model.resize_token_embeddings(len(self.tokenizer))
         self.dropout_layer = nn.Dropout(p=config.dropout)
         self.output_layer = TaggingFNNDecoder(self.model.config.hidden_size, config.num_tags, config.tag_pad_idx)
