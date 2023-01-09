@@ -1,4 +1,5 @@
 from functools import reduce
+from copy import deepcopy
 import json
 
 import numpy as np
@@ -31,20 +32,31 @@ class Example():
         datas = json.load(open(data_path, 'r'))
         examples = []
         for data in datas:
-            exps = []
-            for utt in data:
-                ex = cls(utt)
-                exps.append(ex)
-            ex.ex = [exp.ex for exp in exps]  # simple cast to list
-            ex.utts = [ex.utt for ex in exps]  # simple cast to list
-            ex.slot = [ex.slot for ex in exps]  # simple cast to list
-            ex.slotvalues = [ex.slotvalue for ex in exps]  # simple cast to list
-            ex.slotvalue = reduce(lambda x, y: x + y, [ex.slotvalue for ex in exps])
-            ex.utt = reduce(lambda x, y: x + SEP + y, [ex.utt for ex in exps])
-            ex.input_idx = reduce(lambda x, y: x + [Example.word_vocab[SEP]] + y, [ex.input_idx for ex in exps])
-            ex.tags = reduce(lambda x, y: x + ['O'] + y, [ex.tags for ex in exps])
-            ex.tag_id = reduce(lambda x, y: x + [Example.label_vocab.convert_tag_to_idx('O')] + y, [ex.tag_id for ex in exps])
-            examples.append(ex)
+            dummpy_data = {
+                "utt_id": 1,
+                "manual_transcript": "",
+                "asr_1best": "",
+                "semantic": [],
+            }
+            ex = cls(data[0])
+            length = lambda: len(ex.input_idx)
+            ex.ex = [ex.ex]
+            ex.slot = [ex.slot]
+            ex.mask = [1] * length()
+            examples.append(deepcopy(ex))
+            for utt in data[1:]:
+                cur_ex = cls(utt)
+                ex.ex += [cur_ex.ex]
+                ex.mask = [0] * (length() + 1)
+                ex.mask += [1] * len(cur_ex.input_idx)
+                ex.slot = cur_ex.slot
+                ex.slotvalue = cur_ex.slotvalue
+                ex.tags = ['O'] * (length() + 1) + cur_ex.tags
+                ex.tag_id = [0] * (length() + 1) + cur_ex.tag_id
+                ex.utt += SEP + cur_ex.utt
+                ex.input_idx += [Example.word_vocab[SEP]] + cur_ex.input_idx
+
+                examples.append(deepcopy(ex))
 
         return examples
 

@@ -85,14 +85,9 @@ def decode(choice):
             cur_dataset = dataset[i: i + args.batch_size]
             current_batch = from_example_list(args, cur_dataset, device, train=True)
             pred, label, loss = model.decode(Example.label_vocab, current_batch)
-            if hasattr(current_batch, 'utts'):
-                for utt, p, l in zip(list(chain(*current_batch.utts)), pred, label):
-                    if any([pre.split('-')[-1] not in utt for pre in p]):
-                        print(utt, p, l)
-            else:
-                for j in range(len(current_batch)):
-                    if any([l.split('-')[-1] not in current_batch.utt[j] for l in pred[j]]):
-                        print(current_batch.utt[j], pred[j], label[j])
+            for j in range(len(current_batch)):
+                if any([l.split('-')[-1] not in current_batch.utt[j] for l in pred[j]]):
+                    print(current_batch.utt[j], pred[j], label[j])
             predictions.extend(pred)
             labels.extend(label)
             total_loss += loss

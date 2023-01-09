@@ -51,14 +51,8 @@ class PretrainedTagging(Module):
     def decode(self, label_vocab, batch):
         prob, loss = self.forward(batch)
 
-        if self.config.dialogue:
-            labels = list(chain(*batch.slotvalues))
-            utt = list(chain(*batch.utts))
-            offsets = [[len(utt) + 1 for i, utt in enumerate(utts)] for utts in batch.utts]
-            prob = [t[:-1] for p, offset in zip(prob, offsets) for t in p.detach().resize_(sum(offset), p.shape[-1]).split(offset)]
-        else:
-            labels = batch.labels
-            utt = batch.utt
+        labels = batch.labels
+        utt = batch.utt
 
         predictions = label_vocab.decode(prob, utt)
 
