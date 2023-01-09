@@ -1,6 +1,7 @@
 from functools import reduce
-
 import json
+
+import numpy as np
 
 from utils.vocab import Vocab, LabelVocab, LabelVocabNBI, SEP
 from utils.word2vec import Word2vecUtils
@@ -34,8 +35,10 @@ class Example():
             for utt in data:
                 ex = cls(utt)
                 exps.append(ex)
-            ex.ex = [ex.ex for ex in exps]  # simple cast to list
+            ex.ex = [exp.ex for exp in exps]  # simple cast to list
+            ex.utts = [ex.utt for ex in exps]  # simple cast to list
             ex.slot = [ex.slot for ex in exps]  # simple cast to list
+            ex.slotvalues = [ex.slotvalue for ex in exps]  # simple cast to list
             ex.slotvalue = reduce(lambda x, y: x + y, [ex.slotvalue for ex in exps])
             ex.utt = reduce(lambda x, y: x + SEP + y, [ex.utt for ex in exps])
             ex.input_idx = reduce(lambda x, y: x + [Example.word_vocab[SEP]] + y, [ex.input_idx for ex in exps])
@@ -50,6 +53,8 @@ class Example():
         self.ex = ex
 
         self.utt = ex['asr_1best']
+        if self.utt == 'null':
+            self.utt == ''
         self.slot = {}
         for label in ex['semantic']:
             act_slot = f'{label[0]}-{label[1]}'

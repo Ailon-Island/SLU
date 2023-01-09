@@ -9,6 +9,8 @@ def from_example_list(args, ex_list, device='cpu', train=True):
     tag_pad_idx = args.tag_pad_idx
 
     batch.utt = [ex.utt for ex in ex_list]
+    if hasattr(ex_list[0], 'utts'):
+        batch.utts = [ex.utts for ex in ex_list]
     input_lens = [len(ex.input_idx) for ex in ex_list]
     max_len = max(input_lens)
     input_ids = [ex.input_idx + [pad_idx] * (max_len - len(ex.input_idx)) for ex in ex_list]
@@ -17,6 +19,8 @@ def from_example_list(args, ex_list, device='cpu', train=True):
 
     if train:
         batch.labels = [ex.slotvalue for ex in ex_list]
+        if hasattr(ex_list[0], 'slotvalues'):
+            batch.slotvalues = [ex.slotvalues for ex in ex_list]
         tag_lens = [len(ex.tag_id) for ex in ex_list]
         max_tag_lens = max(tag_lens)
         tag_ids = [ex.tag_id + [tag_pad_idx] * (max_tag_lens - len(ex.tag_id)) for ex in ex_list]

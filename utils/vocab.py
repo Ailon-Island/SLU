@@ -7,6 +7,10 @@ BOS = '<s>'
 EOS = '</s>'
 SEP = '<sep>'
 
+special_tokens = [
+    PAD, UNK, BOS, EOS, SEP
+]
+
 
 class Vocab():
 
@@ -85,21 +89,24 @@ class LabelVocab():
     def num_tags(self):
         return len(self.tag2idx)
 
-    def decode(self, prob, batch):
+    def decode(self, prob, utt):
+        utt = utt.copy()
+        for token in special_tokens:
+            utt = [t.replace(token, ' ') for t in utt]
         import torch
-        batch_size = len(batch)
+        batch_size = len(utt)
         predictions = []
         for i in range(batch_size):
             pred = torch.argmax(prob[i], dim=-1).cpu().tolist()
             pred_tuple = []
             idx_buff, tag_buff, pred_tags = [], [], []
-            pred = pred[:len(batch.utt[i])]
+            pred = pred[:len(utt[i])]
             for idx, tid in enumerate(pred):
                 tag = self.convert_idx_to_tag(tid)
                 pred_tags.append(tag)
                 if (tag == 'O' or tag.startswith('B')) and len(tag_buff) > 0:
                     slot = '-'.join(tag_buff[0].split('-')[1:])
-                    value = ''.join([batch.utt[i][j] for j in idx_buff])
+                    value = ''.join([utt[i][j] for j in idx_buff])
                     idx_buff, tag_buff = [], []
                     pred_tuple.append(f'{slot}-{value}')
                     if tag.startswith('B'):
@@ -110,7 +117,7 @@ class LabelVocab():
                     tag_buff.append(tag)
             if len(tag_buff) > 0:
                 slot = '-'.join(tag_buff[0].split('-')[1:])
-                value = ''.join([batch.utt[i][j] for j in idx_buff])
+                value = ''.join([utt[i][j] for j in idx_buff])
                 pred_tuple.append(f'{slot}-{value}')
             predictions.append(pred_tuple)
 
@@ -141,21 +148,24 @@ class LabelVocabNBI(LabelVocab):
     def convert_idx_to_tag(self, idx):
         return self.idx2tag[idx]
 
-    def decode(self, prob, batch):
+    def decode(self, prob, utt):
+        utt = utt.copy()
+        for token in special_tokens:
+            utt = [t.replace(token, ' ') for t in utt]
         import torch
-        batch_size = len(batch)
+        batch_size = len(utt)
         predictions = []
         for i in range(batch_size):
             pred = torch.argmax(prob[i], dim=-1).cpu().tolist()
             pred_tuple = []
             idx_buff, tag_buff, pred_tags = [], [], []
             tag_last = None
-            pred = pred[:len(batch.utt[i])]
+            pred = pred[:len(utt[i])]
             for idx, tid in enumerate(pred):
                 tag = self.convert_idx_to_tag(tid)
                 if (tag == 'O' or tag != tag_last) and len(tag_buff) > 0:
                     slot = '-'.join(tag_buff[0].split('-')[1:])
-                    value = ''.join([batch.utt[i][j] for j in idx_buff])
+                    value = ''.join([utt[i][j] for j in idx_buff])
                     idx_buff, tag_buff = [], []
                     pred_tuple.append(f'{slot}-{value}')
                 if tag.startswith('-'):
@@ -167,7 +177,7 @@ class LabelVocabNBI(LabelVocab):
                 tag_last = tag
             if len(tag_buff) > 0:
                 slot = '-'.join(tag_buff[0].split('-')[1:])
-                value = ''.join([batch.utt[i][j] for j in idx_buff])
+                value = ''.join([utt[i][j] for j in idx_buff])
                 pred_tuple.append(f'{slot}-{value}')
             predictions.append(pred_tuple)
 
