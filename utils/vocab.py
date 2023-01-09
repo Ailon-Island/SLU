@@ -92,6 +92,7 @@ class LabelVocab():
             pred = pred[:len(batch.utt[i])]
             for idx, tid in enumerate(pred):
                 tag = self.convert_idx_to_tag(tid)
+                pred_tags.append(tag)
                 if (tag == 'O' or tag.startswith('B')) and len(tag_buff) > 0:
                     slot = '-'.join(tag_buff[0].split('-')[1:])
                     value = ''.join([batch.utt[i][j] for j in idx_buff])
@@ -108,6 +109,8 @@ class LabelVocab():
                 value = ''.join([batch.utt[i][j] for j in idx_buff])
                 pred_tuple.append(f'{slot}-{value}')
             predictions.append(pred_tuple)
+
+        return predictions
 
 
 class LabelVocabNBI(LabelVocab):
@@ -133,17 +136,6 @@ class LabelVocabNBI(LabelVocab):
 
     def convert_idx_to_tag(self, idx):
         return self.idx2tag[idx]
-
-    # @staticmethod
-    # def label_bi(tags):
-    #     if isinstance(tags, list):
-    #         tags = np.array(tags)
-    #     mask_valid = [tag.startswith('-') for tag in tags]
-    #     mask = tags[1:] == tags[:-1]
-    #     mask = np.insert(mask, 0, False)
-    #     tags[mask & mask_valid] = ['I' + tag for tag in tags[mask & mask_valid]]
-    #     tags[~mask & mask_valid] = ['B' + tag for tag in tags[~mask & mask_valid]]
-    #     return list(tags)
 
     def decode(self, prob, batch):
         import torch
@@ -174,3 +166,5 @@ class LabelVocabNBI(LabelVocab):
                 value = ''.join([batch.utt[i][j] for j in idx_buff])
                 pred_tuple.append(f'{slot}-{value}')
             predictions.append(pred_tuple)
+
+        return predictions

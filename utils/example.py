@@ -1,17 +1,17 @@
 import json
 
-from utils.vocab import Vocab, LabelVocab
+from utils.vocab import Vocab, LabelVocab, LabelVocabNBI
 from utils.word2vec import Word2vecUtils
 from utils.evaluator import Evaluator
 
 class Example():
 
     @classmethod
-    def configuration(cls, root, train_path=None, word2vec_path=None):
+    def configuration(cls, root, train_path=None, word2vec_path=None, tag_bi=True):
         cls.evaluator = Evaluator()
         cls.word_vocab = Vocab(padding=True, unk=True, filepath=train_path)
         cls.word2vec = Word2vecUtils(word2vec_path)
-        cls.label_vocab = LabelVocab(root)
+        cls.label_vocab = LabelVocab(root) if tag_bi else LabelVocabNBI(root)
 
     @classmethod
     def load_dataset(cls, data_path):
