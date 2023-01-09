@@ -12,13 +12,15 @@ from transformers import AutoTokenizer, AutoModel, AutoModelForMaskedLM, load_tf
 
 from .slu_baseline_tagging import TaggingFNNDecoder
 from utils.tensor import dict2device
+from utils.vocab import SEP, UNK, PAD
 
-alphabet_tokens = ['['+chr(i)+']' for i in chain(range(97, 123), range(65, 91))]
+alphabet_tokens = [chr(i) for i in chain(range(97, 123), range(65, 91))]
 
 model_names = {
     'bert': "bert-base-chinese",
     'electra': "hfl/chinese-legal-electra-base-generator"
 }
+
 
 class PretrainedTagging(Module):
     def __init__(self, config):
@@ -33,8 +35,6 @@ class PretrainedTagging(Module):
         tag_mask = batch.tag_mask
         input_ids = batch.input_ids
         utt = batch.utt
-        utt = [re.sub('[a-zA-Z]', lambda x: '['+x.group(0)+']', ut) for ut in utt]
-        utt = [re.sub(' ', '[SPACE]', ut) for ut in utt]
         lengths = batch.lengths
 
         token = self.tokenizer(utt, return_tensors="pt", padding=True, truncation=True)
@@ -59,7 +59,10 @@ class PretrainedTagging(Module):
     def get_pretrained(config):
         name = model_names[config.pretrained_model.lower()]
         tokenizer = AutoTokenizer.from_pretrained(name,
-                                                  additional_special_tokens=['[SPACE]', '[a]', *alphabet_tokens])
+                                                  sep_token=SEP,
+                                                  unk_token=UNK,
+                                                  pad_token=PAD,
+                                                  additional_special_tokens=[' ', *alphabet_tokens])
 
         if config.load_pretrained:
             if config.pretrained_framework == 'pytorch':

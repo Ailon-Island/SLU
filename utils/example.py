@@ -1,15 +1,17 @@
+from functools import reduce
+
 import json
 
-from utils.vocab import Vocab, LabelVocab, LabelVocabNBI
+from utils.vocab import Vocab, LabelVocab, LabelVocabNBI, SEP
 from utils.word2vec import Word2vecUtils
 from utils.evaluator import Evaluator
 
 class Example():
 
     @classmethod
-    def configuration(cls, root, train_path=None, word2vec_path=None, tag_bi=True):
+    def configuration(cls, root, train_path=None, word2vec_path=None, tag_bi=True, sentence=False):
         cls.evaluator = Evaluator()
-        cls.word_vocab = Vocab(padding=True, unk=True, filepath=train_path)
+        cls.word_vocab = Vocab(padding=True, unk=True, sentence=sentence, filepath=train_path)
         cls.word2vec = Word2vecUtils(word2vec_path)
         cls.label_vocab = LabelVocab(root) if tag_bi else LabelVocabNBI(root)
 
@@ -21,6 +23,26 @@ class Example():
             for utt in data:
                 ex = cls(utt)
                 examples.append(ex)
+        return examples
+
+    @classmethod
+    def load_dialogue_dataset(cls, data_path):
+        datas = json.load(open(data_path, 'r'))
+        examples = []
+        for data in datas:
+            exps = []
+            for utt in data:
+                ex = cls(utt)
+                exps.append(ex)
+            ex.ex = [ex.ex for ex in exps]  # simple cast to list
+            ex.slot = [ex.slot for ex in exps]  # simple cast to list
+            ex.slotvalue = reduce(lambda x, y: x + y, [ex.slotvalue for ex in exps])
+            ex.utt = reduce(lambda x, y: x + SEP + y, [ex.utt for ex in exps])
+            ex.input_idx = reduce(lambda x, y: x + [Example.word_vocab[SEP]] + y, [ex.input_idx for ex in exps])
+            ex.tags = reduce(lambda x, y: x + ['O'] + y, [ex.tags for ex in exps])
+            ex.tag_id = reduce(lambda x, y: x + [Example.label_vocab.convert_tag_to_idx('O')] + y, [ex.tag_id for ex in exps])
+            examples.append(ex)
+
         return examples
 
     def __init__(self, ex: dict):

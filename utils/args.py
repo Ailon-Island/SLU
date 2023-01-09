@@ -24,6 +24,7 @@ def add_argument_base(arg_parser):
     #### Dataset Configuration ####
     arg_parser.add_argument('--tag_bi', type=bool, default=True, help='whether to explicitly use BI tags, if False, use BI will be added in postprocessing')
     arg_parser.add_argument('--no_tag_bi', dest='tag_bi', action='store_false')
+    arg_parser.add_argument('--dialogue', action='store_true', help='whether to use dialogue dataset')
     #### Common Encoder Hyperparams ####
     arg_parser.add_argument('--encoder_cell', default='LSTM', choices=['LSTM', 'GRU', 'RNN', 'BERT'], help='root of data')
     arg_parser.add_argument('--dropout', type=float, default=0.2, help='feature dropout rate')

@@ -5,11 +5,12 @@ PAD = '<pad>'
 UNK = '<unk>'
 BOS = '<s>'
 EOS = '</s>'
+SEP = '<sep>'
 
 
 class Vocab():
 
-    def __init__(self, padding=False, unk=False, min_freq=1, filepath=None):
+    def __init__(self, padding=False, unk=False, sentence=False, min_freq=1, filepath=None):
         super(Vocab, self).__init__()
         self.word2id = dict()
         self.id2word = dict()
@@ -19,6 +20,9 @@ class Vocab():
         if unk:
             idx = len(self.word2id)
             self.word2id[UNK], self.id2word[idx] = idx, UNK
+        if sentence:
+            idx = len(self.word2id)
+            self.word2id[SEP], self.id2word[idx] = idx, SEP
 
         if filepath is not None:
             self.from_train(filepath, min_freq=min_freq)
