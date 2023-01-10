@@ -10,7 +10,7 @@ from utils.initialization import *
 from utils.example import Example
 from utils.batch import from_example_list
 from utils.vocab import PAD
-from model.bilstmcrf import BiLSTM_CRF
+from model.bilstmcrf_elmo import BiLSTM_CRF
 # from allennlp.modules.elmo import Elmo, batch_to_ids
 
 # initialization params, output path, logger, random seed and torch.device
@@ -38,7 +38,7 @@ args.tag_pad_idx = Example.label_vocab.convert_tag_to_idx(PAD)
 
 
 model = BiLSTM_CRF(args).to(device)
-Example.word2vec.load_embeddings(model.word_embed, Example.word_vocab, device=device)
+# Example.word2vec.load_embeddings(model.word_embed, Example.word_vocab, device=device)
 
 
 def set_optimizer(model, args):
@@ -59,7 +59,11 @@ def decode(choice):
             cur_dataset = dataset[i: i + args.batch_size]
             current_batch = from_example_list(args, cur_dataset, device, train=True)
             pred, label = model.decode(Example.label_vocab, current_batch)
-
+            # print(len(pred), len(pred[0]), len(label))
+            # for j in range(len(current_batch)):
+            #     if any([l.split('-')[-1] not in current_batch.utt[j] for l in pred[j]]):
+            #         print(current_batch.utt[j], pred[j], label[j])
+            # print(pred, label)
             predictions.extend(pred)
             labels.extend(label)
             count += 1

@@ -10,14 +10,15 @@ from utils.initialization import *
 from utils.example import Example
 from utils.batch import from_example_list
 from utils.vocab import PAD
-from model.bilstmcrf import BiLSTM_CRF
-# from allennlp.modules.elmo import Elmo, batch_to_ids
-
+from model.graphlstm import sLSTM
+from model.stack_propagation import Stack_propagation
+from model.slu_baseline_tagging_elmo import SLUTagging
+from model.slstm import SeqLabelingForSLSTM
+# from model.slugnn import SLU_GNN
 # initialization params, output path, logger, random seed and torch.device
 args = init_args(sys.argv[1:])
 set_random_seed(args.seed)
-# device = set_torch_device(args.device)
-device = "cuda"
+device = set_torch_device(args.device)
 print("Initialization finished ...")
 print("Random seed is set to %d" % (args.seed))
 print("Use GPU with index %s" % (args.device) if args.device >= 0 else "Use CPU as target torch device")
@@ -36,9 +37,12 @@ args.pad_idx = Example.word_vocab[PAD]
 args.num_tags = Example.label_vocab.num_tags
 args.tag_pad_idx = Example.label_vocab.convert_tag_to_idx(PAD)
 
-
-model = BiLSTM_CRF(args).to(device)
-Example.word2vec.load_embeddings(model.word_embed, Example.word_vocab, device=device)
+# model = sLSTM(args).to(device)
+# model = SeqLabelingForSLSTM(args).to(device)
+# model = Stack_propagation(args).to(device)
+model = SLUTagging(args).to(device)
+# model = SLU_GNN(args).to(device)
+# Example.word2vec.load_embeddings(model.word_embed, Example.word_vocab, device=device)
 
 
 def set_optimizer(model, args):
@@ -58,15 +62,18 @@ def decode(choice):
         for i in range(0, len(dataset), args.batch_size):
             cur_dataset = dataset[i: i + args.batch_size]
             current_batch = from_example_list(args, cur_dataset, device, train=True)
-            pred, label = model.decode(Example.label_vocab, current_batch)
-
+            pred, label, loss = model.decode(Example.label_vocab, current_batch)
+            for j in range(len(current_batch)):
+                if any([l.split('-')[-1] not in current_batch.utt[j] for l in pred[j]]):
+                    print(current_batch.utt[j], pred[j], label[j])
             predictions.extend(pred)
             labels.extend(label)
+            total_loss += loss
             count += 1
         metrics = Example.evaluator.acc(predictions, labels)
     torch.cuda.empty_cache()
     gc.collect()
-    return metrics
+    return metrics, total_loss / count
 
 
 if not args.testing:
@@ -87,32 +94,32 @@ if not args.testing:
             cur_dataset = [train_dataset[k] for k in train_index[j: j + step_size]]
             current_batch = from_example_list(args, cur_dataset, device, train=True)
             # print(current_batch.input_ids.shape) # torch.Size([32, *])
-            loss = model(current_batch)
+            output, loss = model(current_batch)
             epoch_loss += loss.item()
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
-            print(count, loss.item())
+
             count += 1
+            # print(count)
         print('Training: \tEpoch: %d\tTime: %.4f\tTraining Loss: %.4f' % (i, time.time() - start_time, epoch_loss / count))
         torch.cuda.empty_cache()
         gc.collect()
 
         start_time = time.time()
-        metrics = decode('dev')
-        # print(metrics)
+        metrics, dev_loss = decode('dev')
         dev_acc, dev_fscore = metrics['acc'], metrics['fscore']
         print('Evaluation: \tEpoch: %d\tTime: %.4f\tDev acc: %.2f\tDev fscore(p/r/f): (%.2f/%.2f/%.2f)' % (i, time.time() - start_time, dev_acc, dev_fscore['precision'], dev_fscore['recall'], dev_fscore['fscore']))
         if dev_acc > best_result['dev_acc']:
-            best_result['dev_acc'], best_result['dev_f1'], best_result['iter'] = dev_acc, dev_fscore, i
+            best_result['dev_loss'], best_result['dev_acc'], best_result['dev_f1'], best_result['iter'] = dev_loss, dev_acc, dev_fscore, i
             torch.save({
                 'epoch': i, 'model': model.state_dict(),
                 'optim': optimizer.state_dict(),
             }, open('model.bin', 'wb'))
-            print('NEW BEST MODEL: \tEpoch: %d\tDev acc: %.2f\tDev fscore(p/r/f): (%.2f/%.2f/%.2f)' % (i, dev_acc, dev_fscore['precision'], dev_fscore['recall'], dev_fscore['fscore']))
+            print('NEW BEST MODEL: \tEpoch: %d\tDev loss: %.4f\tDev acc: %.2f\tDev fscore(p/r/f): (%.2f/%.2f/%.2f)' % (i, dev_loss, dev_acc, dev_fscore['precision'], dev_fscore['recall'], dev_fscore['fscore']))
         if i-best_result['iter']>20:
             break
-    print('FINAL BEST RESULT: \tEpoch: %d\tDev acc: %.4f\tDev fscore(p/r/f): (%.4f/%.4f/%.4f)' % (best_result['iter'], best_result['dev_acc'], best_result['dev_f1']['precision'], best_result['dev_f1']['recall'], best_result['dev_f1']['fscore']))
+    print('FINAL BEST RESULT: \tEpoch: %d\tDev loss: %.4f\tDev acc: %.4f\tDev fscore(p/r/f): (%.4f/%.4f/%.4f)' % (best_result['iter'], best_result['dev_loss'], best_result['dev_acc'], best_result['dev_f1']['precision'], best_result['dev_f1']['recall'], best_result['dev_f1']['fscore']))
 else:
     start_time = time.time()
     metrics, dev_loss = decode('dev')

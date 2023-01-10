@@ -12,7 +12,7 @@ class SLUTagging(nn.Module):
         super(SLUTagging, self).__init__()
         self.config = config
         self.cell = config.encoder_cell
-        self.word_embed = nn.Embedding(config.vocab_size, config.embed_size, padding_idx=0)
+        # self.word_embed = nn.Embedding(config.vocab_size, config.embed_size, padding_idx=0)
         self.embedder = Embedder('./pretrain/zhs.model')
         self.rnn = getattr(nn, self.cell)(config.embed_size, config.hidden_size // 2, num_layers=config.num_layer, bidirectional=True, batch_first=True)
         self.dropout_layer = nn.Dropout(p=config.dropout)
@@ -24,10 +24,10 @@ class SLUTagging(nn.Module):
         # print(tag_mask)
         input_ids = batch.input_ids
         lengths = batch.lengths
-        # utt = batch.utt
-        # utt_length = len(utt[0])
-        # embed = torch.Tensor(np.stack([np.pad(res, ((0, utt_length - res.shape[0]),(0, 0))) for res in self.embedder.sents2elmo(utt)])).to('cuda')
-        embed = self.word_embed(input_ids)
+        utt = batch.utt
+        utt_length = len(utt[0])
+        embed = torch.Tensor(np.stack([np.pad(res, ((0, utt_length - res.shape[0]),(0, 0))) for res in self.embedder.sents2elmo(utt)])).to('cuda')
+        # embed = self.word_embed(input_ids)
         packed_inputs = rnn_utils.pack_padded_sequence(embed, lengths, batch_first=True, enforce_sorted=True)
         packed_rnn_out, h_t_c_t = self.rnn(packed_inputs)  # bsize x seqlen x dim
         rnn_out, unpacked_len = rnn_utils.pad_packed_sequence(packed_rnn_out, batch_first=True)
@@ -42,8 +42,7 @@ class SLUTagging(nn.Module):
         prob, loss = self.forward(batch)
         predictions = []
         for i in range(batch_size):
-            pred = prob[i]
-            # pred = torch.argmax(prob[i], dim=-1).cpu().tolist()
+            pred = torch.argmax(prob[i], dim=-1).cpu().tolist()
             pred_tuple = []
             idx_buff, tag_buff, pred_tags = [], [], []
             pred = pred[:len(batch.utt[i])]

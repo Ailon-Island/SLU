@@ -77,6 +77,7 @@ if not args.testing:
     nsamples, best_result = len(train_dataset), {'dev_acc': 0., 'dev_f1': 0.}
     train_index, step_size = np.arange(nsamples), args.batch_size
     print('Start training ......')
+    # print(f'num_tags:{args.num_tags}')
     for i in range(args.max_epoch):
         start_time = time.time()
         epoch_loss = 0
@@ -86,12 +87,15 @@ if not args.testing:
         for j in range(0, nsamples, step_size):
             cur_dataset = [train_dataset[k] for k in train_index[j: j + step_size]]
             current_batch = from_example_list(args, cur_dataset, device, train=True)
+            # print(current_batch.input_ids.shape) # torch.Size([32, *])
             output, loss = model(current_batch)
             epoch_loss += loss.item()
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
+            
             count += 1
+            # print(count)
         print('Training: \tEpoch: %d\tTime: %.4f\tTraining Loss: %.4f' % (i, time.time() - start_time, epoch_loss / count))
         torch.cuda.empty_cache()
         gc.collect()
