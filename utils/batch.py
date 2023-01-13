@@ -24,7 +24,7 @@ def from_example_list(args, ex_list, device='cpu', train=True):
         tag_lens = [len(ex.tag_id) for ex in ex_list]
         max_tag_lens = max(tag_lens)
         tag_ids = [ex.tag_id + [tag_pad_idx] * (max_tag_lens - len(ex.tag_id)) for ex in ex_list]
-        tag_mask = [ex.mask + [0] * (max_tag_lens - len(ex.tag_id)) for ex in ex_list]
+        tag_mask = [getattr(ex, "mask", [1] * len(ex.tag_id)) + [0] * (max_tag_lens - len(ex.tag_id)) for ex in ex_list]
         batch.tag_ids = torch.tensor(tag_ids, dtype=torch.long, device=device)
         batch.tag_mask = torch.tensor(tag_mask, dtype=torch.float, device=device)
     else:
