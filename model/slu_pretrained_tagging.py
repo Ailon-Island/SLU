@@ -18,7 +18,8 @@ alphabet_tokens = [chr(i) for i in chain(range(97, 123), range(65, 91))]
 
 model_names = {
     'bert': "bert-base-chinese",
-    'electra': "hfl/chinese-legal-electra-base-generator"
+    'electra': "hfl/chinese-electra-base-discriminator",
+    'electra-180g': "hfl/chinese-electra-180g-base-discriminator"
 }
 
 
