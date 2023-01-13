@@ -33,7 +33,7 @@ class SLUTagging(nn.Module):
     def decode(self, label_vocab, batch):
         labels = batch.labels
         prob, loss = self.forward(batch)
-        predictions = label_vocab.decode(prob, batch)
+        predictions = label_vocab.decode(prob, batch.utt)
 
         return predictions, labels, loss.cpu().item()
 
