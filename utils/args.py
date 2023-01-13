@@ -34,7 +34,7 @@ def add_argument_base(arg_parser):
     #### Pretrained Backbone Hyperparams ####
     arg_parser.add_argument('--pretrained_model', default='bert', help='pretrained model name, e.g., bert, electra, etc.')
     arg_parser.add_argument('--finetune_pretrained', action='store_true', help='whether to finetune the pretrained backbone')
-    arg_parser.add_argument('--finetune_lr', type=float, default=1e-4, help='learning rate for finetuning')
+    arg_parser.add_argument('--finetune_lr', type=float, default=None, help='learning rate for finetuning')
     ## Custom Checkpoint for Pretrained Backbone ##
     arg_parser.add_argument('--load_pretrained', action='store_true', help='whether to load pretrained model')
     arg_parser.add_argument(

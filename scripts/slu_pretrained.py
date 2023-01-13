@@ -67,6 +67,11 @@ def set_optimizer(model, args):
 
     grouped_params = [{'params': list(set([p for n, p in params])), 'name': 'output_layer'}]
     if args.finetune_pretrained:
+        if args.finetune_lr is None:
+            if args.pretrained_model == 'bert':
+                args.finetune_lr = 1e-4
+            else:
+                args.finetune_lr = 1e-5
         pretrained_params = [(n, p) for n, p in model.model.named_parameters() if p.requires_grad]
         grouped_params.append({'params': list(set([p for n, p in pretrained_params])), 'lr': args.finetune_lr, 'name': 'pretrained'})
 
