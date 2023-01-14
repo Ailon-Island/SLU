@@ -113,7 +113,7 @@ class BiLSTM_CRF(nn.Module):
         #     cut_utt.append(res)
         #     # max_len = max(max_len, len(res))
         # embeds = torch.Tensor(np.stack([np.pad(res, ((0, max_len - res.shape[0]),(0, 0))) for res in self.embedder.sents2elmo(cut_utt)])).to('cuda')
-        print(embeds.shape)
+        # print(embeds.shape)
         lstm_out, self.hidden = self.lstm(embeds, self.hidden)
         lstm_out = lstm_out.view(sentence.shape[0], sentence.shape[1], self.hidden_dim)
         lstm_feats = self.hidden2tag(lstm_out)

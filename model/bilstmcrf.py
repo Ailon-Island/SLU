@@ -14,10 +14,6 @@ def log_sum_exp(vec):
     return max_score + \
         torch.log(torch.sum(torch.exp(vec - max_score_broadcast)))
 
-# START_TAG = "<START>"
-# STOP_TAG = "<STOP>"
-START_IDX = 74
-STOP_IDX = 75
 class BiLSTM_CRF(nn.Module):
 
     def __init__(self, config):
@@ -43,8 +39,8 @@ class BiLSTM_CRF(nn.Module):
 
         self.hidden = self.init_hidden()
     def init_hidden(self, batch_size=32):
-        return (torch.randn(2, batch_size, self.hidden_dim // 2),
-                torch.randn(2, batch_size, self.hidden_dim // 2))
+        return (torch.randn(2, batch_size, self.hidden_dim // 2).to('cuda'),
+                torch.randn(2, batch_size, self.hidden_dim // 2).to('cuda'))
 
     def decode(self, label_vocab, batch):
         tag_ids = batch.tag_ids

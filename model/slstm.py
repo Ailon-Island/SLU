@@ -47,7 +47,6 @@ class SLSTM(nn.Module):
             self.g_out_fc = nn.Linear(2 * nhid, nhid)
             self.g_att_fc = nn.Linear(2 * nhid, nhid)
 
-        # self.emb = nn.Embedding.from_pretrained(Tar_emb)
         self.input = nn.Linear(nemb, nhid)
         self.fc = nn.Linear(2 * nhid, 2)
         self.up_fc = nn.Linear(nhid, 2 * nhid)
@@ -100,9 +99,7 @@ class SLSTM(nn.Module):
 
         embs = self.drop1(data)
         embs = self.input(embs)
-        # nhs = ncs = TZ(B,L,H)
         nhs = ncs = embs
-        # gh = gc = TZ(B,H)
         gh = gc = embs.sum(1) / mask.sum(1)[:, None]
         for i in range(self.MP_ITER):
             n_gh, n_gc = update_g_node(nhs, ncs, gh, gc, mask)
@@ -118,7 +115,6 @@ class SLSTM(nn.Module):
         rep = torch.cat([nhs, gh[:, None, :]], 1).sum(1) / mask.sum(1)[:, None]
         rep = self.drop2(rep)
         rep = torch.tanh(self.up_fc(rep))
-        # rep = self.drop2(rep)
         pred = F.log_softmax(self.fc(rep), 1)
         return pred
 
@@ -133,8 +129,8 @@ class SeqLabelingForSLSTM(nn.Module):
         # self.word_embed = nn.Embedding(vocab_size, word_emb_dim, padding_idx=0)
         self.embedder= Embedder('./pretrain/zhs.model')
         self.Rnn = SLSTM(vocab_size, word_emb_dim, hidden_dim, num_layer=1, return_all=False)
-        self.output_layer = TaggingFNNDecoder(config.hidden_size, config.num_tags, config.tag_pad_idx)
-        # self.output_layer = CRFDecoder(config.hidden_size, config.num_tags, config.tag_pad_idx)
+        # self.output_layer = TaggingFNNDecoder(config.hidden_size, config.num_tags, config.tag_pad_idx)
+        self.output_layer = CRFDecoder(config.hidden_size, config.num_tags, config.tag_pad_idx)
         self.attention = SelfAttention(input_dim=hidden_dim, hidden_dim=hidden_dim, output_dim=hidden_dim,
                                        dropout_rate=config.dropout)
 
@@ -152,7 +148,6 @@ class SeqLabelingForSLSTM(nn.Module):
         utt_length = len(utt[0])
         embed = torch.Tensor(np.stack([np.pad(res, ((0, utt_length - res.shape[0]),(0, 0))) for res in self.embedder.sents2elmo(utt)])).to('cuda')
         x = self.Rnn(embed, tag_mask)
-        # x = self.Linear(x)
         attn = self._get_self_attn(x, tag_mask)
         x *= attn
         output = self.output_layer(x, tag_mask, tag_ids)
@@ -164,8 +159,8 @@ class SeqLabelingForSLSTM(nn.Module):
         prob, loss = self.forward(batch)
         predictions = []
         for i in range(batch_size):
-            pred = torch.argmax(prob[i], dim=-1).cpu().tolist()
-            # pred = prob[i]
+            # pred = torch.argmax(prob[i], dim=-1).cpu().tolist()
+            pred = prob[i]
             pred_tuple = []
             idx_buff, tag_buff, pred_tags = [], [], []
             pred = pred[:len(batch.utt[i])]

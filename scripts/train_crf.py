@@ -76,7 +76,6 @@ if not args.testing:
     nsamples, best_result = len(train_dataset), {'dev_acc': 0., 'dev_f1': 0.}
     train_index, step_size = np.arange(nsamples), args.batch_size
     print('Start training ......')
-    # print(f'num_tags:{args.num_tags}')
     for i in range(args.max_epoch):
         start_time = time.time()
         epoch_loss = 0
@@ -86,13 +85,11 @@ if not args.testing:
         for j in range(0, nsamples, step_size):
             cur_dataset = [train_dataset[k] for k in train_index[j: j + step_size]]
             current_batch = from_example_list(args, cur_dataset, device, train=True)
-            # print(current_batch.input_ids.shape) # torch.Size([32, *])
             loss = model(current_batch)
             epoch_loss += loss.item()
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
-            print(count, loss.item())
             count += 1
         print('Training: \tEpoch: %d\tTime: %.4f\tTraining Loss: %.4f' % (i, time.time() - start_time, epoch_loss / count))
         torch.cuda.empty_cache()
@@ -102,19 +99,18 @@ if not args.testing:
         metrics = decode('dev')
         # print(metrics)
         dev_acc, dev_fscore = metrics['acc'], metrics['fscore']
-        print('Evaluation: \tEpoch: %d\tTime: %.4f\tDev acc: %.2f\tDev fscore(p/r/f): (%.2f/%.2f/%.2f)' % (i, time.time() - start_time, dev_acc, dev_fscore['precision'], dev_fscore['recall'], dev_fscore['fscore']))
+        print('Evaluation: \tEpoch: %d\tTime: %.4f\tDev acc: %.4f\tDev fscore(p/r/f): (%.4f/%.4f/%.4f)' % (i, time.time() - start_time, dev_acc, dev_fscore['precision'], dev_fscore['recall'], dev_fscore['fscore']))
         if dev_acc > best_result['dev_acc']:
             best_result['dev_acc'], best_result['dev_f1'], best_result['iter'] = dev_acc, dev_fscore, i
             torch.save({
                 'epoch': i, 'model': model.state_dict(),
                 'optim': optimizer.state_dict(),
             }, open('model.bin', 'wb'))
-            print('NEW BEST MODEL: \tEpoch: %d\tDev acc: %.2f\tDev fscore(p/r/f): (%.2f/%.2f/%.2f)' % (i, dev_acc, dev_fscore['precision'], dev_fscore['recall'], dev_fscore['fscore']))
-        if i-best_result['iter']>20:
-            break
+            print('NEW BEST MODEL: \tEpoch: %d\tDev acc: %.4f\tDev fscore(p/r/f): (%.4f/%.4f/%.4f)' % (i, dev_acc, dev_fscore['precision'], dev_fscore['recall'], dev_fscore['fscore']))
+
     print('FINAL BEST RESULT: \tEpoch: %d\tDev acc: %.4f\tDev fscore(p/r/f): (%.4f/%.4f/%.4f)' % (best_result['iter'], best_result['dev_acc'], best_result['dev_f1']['precision'], best_result['dev_f1']['recall'], best_result['dev_f1']['fscore']))
 else:
     start_time = time.time()
     metrics, dev_loss = decode('dev')
     dev_acc, dev_fscore = metrics['acc'], metrics['fscore']
-    print("Evaluation costs %.2fs ; Dev loss: %.4f\tDev acc: %.2f\tDev fscore(p/r/f): (%.2f/%.2f/%.2f)" % (time.time() - start_time, dev_loss, dev_acc, dev_fscore['precision'], dev_fscore['recall'], dev_fscore['fscore']))
+    print("Evaluation costs %.4fs ; Dev loss: %.4f\tDev acc: %.4f\tDev fscore(p/r/f): (%.4f/%.4f/%.4f)" % (time.time() - start_time, dev_loss, dev_acc, dev_fscore['precision'], dev_fscore['recall'], dev_fscore['fscore']))

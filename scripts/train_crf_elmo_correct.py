@@ -10,7 +10,7 @@ from utils.initialization import *
 from utils.example import Example
 from utils.batch import from_example_list
 from utils.vocab import PAD
-from model.bilstmcrf import BiLSTM_CRF
+from model.bilstmcrf_elmo import BiLSTM_CRF
 # from allennlp.modules.elmo import Elmo, batch_to_ids
 
 # initialization params, output path, logger, random seed and torch.device
@@ -23,8 +23,8 @@ print("Random seed is set to %d" % (args.seed))
 print("Use GPU with index %s" % (args.device) if args.device >= 0 else "Use CPU as target torch device")
 
 start_time = time.time()
-train_path = os.path.join(args.dataroot, 'train.json')
-dev_path = os.path.join(args.dataroot, 'development.json')
+train_path = os.path.join(args.dataroot, 'train_corrected.json')
+dev_path = os.path.join(args.dataroot, 'development_corrected.json')
 Example.configuration(args.dataroot, train_path=train_path, word2vec_path=args.word2vec_path)
 train_dataset = Example.load_dataset(train_path)
 dev_dataset = Example.load_dataset(dev_path)
@@ -38,7 +38,7 @@ args.tag_pad_idx = Example.label_vocab.convert_tag_to_idx(PAD)
 
 
 model = BiLSTM_CRF(args).to(device)
-Example.word2vec.load_embeddings(model.word_embed, Example.word_vocab, device=device)
+# Example.word2vec.load_embeddings(model.word_embed, Example.word_vocab, device=device)
 
 
 def set_optimizer(model, args):
@@ -59,6 +59,11 @@ def decode(choice):
             cur_dataset = dataset[i: i + args.batch_size]
             current_batch = from_example_list(args, cur_dataset, device, train=True)
             pred, label = model.decode(Example.label_vocab, current_batch)
+            # print(len(pred), len(pred[0]), len(label))
+            # for j in range(len(current_batch)):
+            #     if any([l.split('-')[-1] not in current_batch.utt[j] for l in pred[j]]):
+            #         print(current_batch.utt[j], pred[j], label[j])
+            # print(pred, label)
             predictions.extend(pred)
             labels.extend(label)
             count += 1
@@ -91,7 +96,7 @@ if not args.testing:
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
-            print(count, loss.item())
+            # print(count, loss.item())
             count += 1
         print('Training: \tEpoch: %d\tTime: %.4f\tTraining Loss: %.4f' % (i, time.time() - start_time, epoch_loss / count))
         torch.cuda.empty_cache()
