@@ -1,5 +1,5 @@
 #coding=utf8
-import sys, os, time, gc, glob
+import sys, os, time, gc, glob, json
 from itertools import chain
 from torch.optim import Adam
 
@@ -24,13 +24,16 @@ print("Use GPU with index %s" % (args.device) if args.device >= 0 else "Use CPU 
 start_time = time.time()
 train_path = os.path.join(args.dataroot, 'train.json')
 dev_path = os.path.join(args.dataroot, 'development.json')
+test_path = os.path.join(args.dataroot, 'test_unlabelled.json')
 Example.configuration(args.dataroot, train_path=train_path, word2vec_path=args.word2vec_path, tag_bi=args.tag_bi, sentence=args.dialogue)
 if args.dialogue:
     train_dataset = Example.load_dialogue_dataset(train_path)
     dev_dataset = Example.load_dialogue_dataset(dev_path)
+    test_dataset = Example.load_dialogue_dataset(test_path)
 else:
     train_dataset = Example.load_dataset(train_path)
     dev_dataset = Example.load_dataset(dev_path)
+    test_dataset = Example.load_dataset(test_path)
 print("Load dataset and database finished, cost %.4fs ..." % (time.time() - start_time))
 print("Dataset size: train -> %d ; dev -> %d" % (len(train_dataset), len(dev_dataset)))
 
@@ -103,6 +106,26 @@ def decode(choice):
     return metrics, total_loss / count
 
 
+def predict():
+    model.eval()
+    predictions = {}
+    with torch.no_grad():
+        for i in range(0, len(test_dataset), args.batch_size):
+            cur_dataset = test_dataset[i: i + args.batch_size]
+            current_batch = from_example_list(args, cur_dataset, device, train=False)
+            pred = model.decode(Example.label_vocab, current_batch)
+            for pi, p in enumerate(pred):
+                did = current_batch.did[pi]
+                predictions[did] = p
+    test_json = json.load(open(test_path, 'r'))
+    ptr = 0
+    for ei, example in enumerate(test_json):
+        for ui, utt in enumerate(example):
+            utt['pred'] = [pred.split('-') for pred in predictions[f"{ei}-{ui}"]]
+            ptr += 1
+    json.dump(test_json, open(os.path.join(args.dataroot, 'prediction.json'), 'w'), indent=4, ensure_ascii=False)
+
+
 if not args.testing:
     num_training_steps = ((len(train_dataset) + args.batch_size - 1) // args.batch_size) * args.max_epoch
     print('Total training steps: %d' % (num_training_steps))
@@ -147,3 +170,4 @@ else:
     metrics, dev_loss = decode('dev')
     dev_acc, dev_fscore = metrics['acc'], metrics['fscore']
     print("Evaluation costs %.2fs ; Dev loss: %.4f\tDev acc: %.2f\tDev fscore(p/r/f): (%.2f/%.2f/%.2f)" % (time.time() - start_time, dev_loss, dev_acc, dev_fscore['precision'], dev_fscore['recall'], dev_fscore['fscore']))
+    predict()
