@@ -23,7 +23,7 @@ print("Use GPU with index %s" % (args.device) if args.device >= 0 else "Use CPU 
 start_time = time.time()
 train_path = os.path.join(args.dataroot, 'train.json')
 dev_path = os.path.join(args.dataroot, 'development.json')
-Example.configuration(args.dataroot, train_path=train_path, word2vec_path=args.word2vec_path)
+Example.configuration(args.dataroot, train_path=train_path, word2vec_path=args.word2vec_path, tag_bi=args.tag_bi, sentence=args.dialogue)
 if args.dialogue:
     train_dataset = Example.load_dialogue_dataset(train_path)
     dev_dataset = Example.load_dialogue_dataset(dev_path)
