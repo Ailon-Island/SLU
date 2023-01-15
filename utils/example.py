@@ -7,6 +7,8 @@ import numpy as np
 from utils.vocab import Vocab, LabelVocab, LabelVocabNBI, SEP
 from utils.word2vec import Word2vecUtils
 from utils.evaluator import Evaluator
+import pycorrector
+# import jieba
 
 class Example():
 
@@ -18,12 +20,12 @@ class Example():
         cls.label_vocab = LabelVocab(root) if tag_bi else LabelVocabNBI(root)
 
     @classmethod
-    def load_dataset(cls, data_path):
+    def load_dataset(cls, data_path, cut=False, correct=False):
         datas = json.load(open(data_path, 'r'))
         examples = []
         for di, data in enumerate(datas):
             for ui, utt in enumerate(data):
-                ex = cls(utt, f'{di}-{ui}')
+                ex = cls(utt, f'{di}-{ui}', cut,)
                 examples.append(ex)
         return examples
 
@@ -54,8 +56,16 @@ class Example():
                 examples.append(deepcopy(ex))
 
         return examples
-
+        
     def __init__(self, ex: dict, did):
+        for data in datas:
+            for utt in data:
+                ex = cls(utt, cut, correct)
+                # print(ex.slotvalue)
+                examples.append(ex)
+        return examples
+
+    def __init__(self, ex: dict, did, cut=False, correct=False):
         super(Example, self).__init__()
         self.ex = ex
         self.did = did
@@ -63,6 +73,11 @@ class Example():
         self.utt = ex['asr_1best']
         if self.utt == 'null':
             self.utt == ''
+        if correct == True:
+            self.utt, _ = pycorrector.correct(self.utt)
+            print(self.utt)
+        # if cut == True:
+        #     self.utt = list(jieba.cut(self.utt))
         self.slot = {}
         for label in ex['semantic']:
             act_slot = f'{label[0]}-{label[1]}'
