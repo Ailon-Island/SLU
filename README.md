@@ -3,6 +3,12 @@
     conda create -n slu python=3.6
     source activate slu
     pip install torch==1.7.1
+    pip install allennlp, pytorch-crf
+    
+    并安装ELMo for manylangs
+    git clone https://github.com/ericxsun/ELMoForManyLangs.git
+    cd ELMoForManyLangs
+    python setup.py install
 
     如果您想运行SLU-GNN的代码，请安装pyg库。
 
