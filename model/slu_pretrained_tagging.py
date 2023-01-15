@@ -43,21 +43,29 @@ class PretrainedTagging(Module):
         outputs = self.model(**token)
         out = outputs['last_hidden_state']
         # need to omit bos and eos
-        out = out[:, 1:-1, :] * tag_mask.unsqueeze(-1)
+        out = out[:, 1:-1, :]
         hiddens = self.dropout_layer(out)
         tag_output = self.output_layer(hiddens, tag_mask, tag_ids)
 
         return tag_output
 
     def decode(self, label_vocab, batch):
-        prob, loss = self.forward(batch)
+        output = self.forward(batch)
+        if isinstance(output, tuple):
+            prob, loss = output
+        else:
+            prob, loss = output, None
 
         labels = batch.labels
         utt = batch.utt
 
         predictions = label_vocab.decode(prob, utt)
 
-        return predictions, labels, loss.cpu().item()
+        if loss is None:
+            return predictions
+        else:
+            loss = output[1]
+            return predictions, labels, loss.cpu().item()
 
     @staticmethod
     def get_pretrained(config):

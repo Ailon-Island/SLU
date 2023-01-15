@@ -152,3 +152,4 @@ cython_debug/
 .idea/
 model.bin
 pretrained_checkpoints
+checkpoints

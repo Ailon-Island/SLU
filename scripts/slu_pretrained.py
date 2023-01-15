@@ -62,6 +62,9 @@ if args.load_pretrained:
         args.pretrained_path = pytorch_path if args.pretrained_framework == 'pytorch' else tf_path
 
 model = PretrainedTagging(args).to(device)
+if args.checkpoint is not None:
+    model.load_state_dict(torch.load(args.checkpoint, map_location=device)['model'])
+    print(f"Model loaded from {args.checkpoint}")
 # Example.word2vec.load_embeddings(model.word_embed, Example.word_vocab, device=device)
 
 

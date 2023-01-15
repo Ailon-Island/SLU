@@ -21,9 +21,9 @@ class Example():
     def load_dataset(cls, data_path):
         datas = json.load(open(data_path, 'r'))
         examples = []
-        for data in datas:
-            for utt in data:
-                ex = cls(utt)
+        for di, data in enumerate(datas):
+            for ui, utt in enumerate(data):
+                ex = cls(utt, f'{di}-{ui}')
                 examples.append(ex)
         return examples
 
@@ -31,22 +31,17 @@ class Example():
     def load_dialogue_dataset(cls, data_path):
         datas = json.load(open(data_path, 'r'))
         examples = []
-        for data in datas:
-            dummpy_data = {
-                "utt_id": 1,
-                "manual_transcript": "",
-                "asr_1best": "",
-                "semantic": [],
-            }
-            ex = cls(data[0])
+        for di, data in enumerate(datas):
+            ex = cls(data[0], f'{di}-0')
             length = lambda: len(ex.input_idx)
             ex.ex = [ex.ex]
             ex.slot = [ex.slot]
             ex.mask = [1] * length()
             examples.append(deepcopy(ex))
-            for utt in data[1:]:
-                cur_ex = cls(utt)
+            for ui, utt in enumerate(data[1:], 1):
+                cur_ex = cls(utt, f'{di}-{ui}')
                 ex.ex += [cur_ex.ex]
+                ex.did = cur_ex.did
                 ex.mask = [0] * (length() + 1)
                 ex.mask += [1] * len(cur_ex.input_idx)
                 ex.slot = cur_ex.slot
@@ -60,9 +55,10 @@ class Example():
 
         return examples
 
-    def __init__(self, ex: dict):
+    def __init__(self, ex: dict, did):
         super(Example, self).__init__()
         self.ex = ex
+        self.did = did
 
         self.utt = ex['asr_1best']
         if self.utt == 'null':
